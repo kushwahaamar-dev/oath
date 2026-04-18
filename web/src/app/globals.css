@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 8%;
+    --primary: 250 90% 62%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4% 95%;
+    --secondary-foreground: 240 8% 20%;
+    --muted: 240 4% 95%;
+    --muted-foreground: 240 5% 45%;
+    --accent: 240 4% 92%;
+    --accent-foreground: 240 8% 20%;
+    --destructive: 0 85% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 5% 90%;
+    --input: 240 5% 90%;
+    --ring: 250 90% 62%;
+    --radius: 0.75rem;
+    --oath-slash: 0 90% 55%;
+    --oath-ok: 150 65% 42%;
+    --oath-warn: 38 92% 52%;
+  }
+  .dark {
+    --background: 240 10% 5%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 98%;
+    --primary: 250 90% 68%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 6% 15%;
+    --secondary-foreground: 0 0% 92%;
+    --muted: 240 6% 15%;
+    --muted-foreground: 240 5% 60%;
+    --accent: 240 6% 18%;
+    --accent-foreground: 0 0% 92%;
+    --destructive: 0 85% 62%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 18%;
+    --input: 240 6% 18%;
+    --ring: 250 90% 68%;
+    --oath-slash: 0 90% 60%;
+    --oath-ok: 150 65% 50%;
+    --oath-warn: 38 92% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}

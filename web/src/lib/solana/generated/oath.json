@@ -1,0 +1,1119 @@
+{
+  "address": "2Uvqbnt6kiaB7Y3AHhtS2FLWRFrJweRebtErSQE2kPmy",
+  "metadata": {
+    "name": "oath",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "create_oath",
+      "docs": [
+        "Create a new oath. Both the user and the agent must sign. The",
+        "agent's `stake_amount` lamports are transferred into a",
+        "system-owned PDA vault that this program can only drain via",
+        "`revoke_oath`, `slash`, `fulfill_oath`, or `expire_oath`."
+      ],
+      "discriminator": [
+        18,
+        53,
+        143,
+        138,
+        106,
+        66,
+        255,
+        195
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "agent",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "oath",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  97,
+                  116,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              },
+              {
+                "kind": "account",
+                "path": "agent"
+              },
+              {
+                "kind": "arg",
+                "path": "args.oath_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "stake_vault",
+          "docs": [
+            "We validate the derivation via `seeds` + `bump`; no data lives",
+            "here."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oath"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "CreateOathArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "expire_oath",
+      "docs": [
+        "Anyone can call `expire_oath` after the expiry timestamp has",
+        "passed. Returns stake minus an optional keeper fee to the",
+        "agent."
+      ],
+      "discriminator": [
+        229,
+        207,
+        133,
+        102,
+        85,
+        31,
+        242,
+        161
+      ],
+      "accounts": [
+        {
+          "name": "keeper",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "oath",
+          "writable": true
+        },
+        {
+          "name": "agent",
+          "writable": true,
+          "relations": [
+            "oath"
+          ]
+        },
+        {
+          "name": "stake_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oath"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "fulfill_oath",
+      "docs": [
+        "User-initiated happy-path close. Stake returns to agent."
+      ],
+      "discriminator": [
+        182,
+        44,
+        204,
+        190,
+        123,
+        246,
+        104,
+        14
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "signer": true,
+          "relations": [
+            "oath"
+          ]
+        },
+        {
+          "name": "oath",
+          "writable": true
+        },
+        {
+          "name": "agent",
+          "writable": true,
+          "relations": [
+            "oath"
+          ]
+        },
+        {
+          "name": "stake_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oath"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "record_action",
+      "docs": [
+        "Pre-commit an intended agent action. Reverts if the action is",
+        "out of scope, over cap, or the oath is not active. Backend",
+        "verifiers refuse to serve agents whose most recent",
+        "`record_action` reverted."
+      ],
+      "discriminator": [
+        153,
+        153,
+        235,
+        171,
+        52,
+        54,
+        196,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "agent",
+          "signer": true,
+          "relations": [
+            "oath"
+          ]
+        },
+        {
+          "name": "oath",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "RecordActionArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "revoke_oath",
+      "docs": [
+        "User-initiated revocation. Status → Revoked and stake is",
+        "returned to the agent. No fee in v1."
+      ],
+      "discriminator": [
+        29,
+        115,
+        17,
+        59,
+        16,
+        58,
+        93,
+        242
+      ],
+      "accounts": [
+        {
+          "name": "user",
+          "signer": true,
+          "relations": [
+            "oath"
+          ]
+        },
+        {
+          "name": "oath",
+          "writable": true
+        },
+        {
+          "name": "agent",
+          "docs": [
+            "`has_one = agent` on the oath account."
+          ],
+          "writable": true,
+          "relations": [
+            "oath"
+          ]
+        },
+        {
+          "name": "stake_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oath"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "slash",
+      "docs": [
+        "Anyone can call `slash` once an oracle-signed Ed25519 proof of",
+        "a scope-violating action is available. Moves the full vault to",
+        "the user and terminates the oath."
+      ],
+      "discriminator": [
+        204,
+        141,
+        18,
+        161,
+        8,
+        177,
+        92,
+        142
+      ],
+      "accounts": [
+        {
+          "name": "slasher",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "oath",
+          "writable": true
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "relations": [
+            "oath"
+          ]
+        },
+        {
+          "name": "stake_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "oath"
+              }
+            ]
+          }
+        },
+        {
+          "name": "instructions_sysvar",
+          "docs": [
+            "caller cannot substitute a crafted account."
+          ],
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SlashArgs"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Oath",
+      "discriminator": [
+        222,
+        97,
+        48,
+        50,
+        185,
+        60,
+        175,
+        24
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "ActionRecorded",
+      "discriminator": [
+        115,
+        16,
+        23,
+        116,
+        227,
+        176,
+        247,
+        96
+      ]
+    },
+    {
+      "name": "ActionRejected",
+      "discriminator": [
+        3,
+        35,
+        59,
+        10,
+        118,
+        29,
+        59,
+        83
+      ]
+    },
+    {
+      "name": "OathCreated",
+      "discriminator": [
+        165,
+        157,
+        51,
+        209,
+        94,
+        123,
+        115,
+        117
+      ]
+    },
+    {
+      "name": "OathExpiredEvent",
+      "discriminator": [
+        121,
+        199,
+        165,
+        199,
+        54,
+        234,
+        188,
+        46
+      ]
+    },
+    {
+      "name": "OathFulfilled",
+      "discriminator": [
+        207,
+        19,
+        109,
+        61,
+        88,
+        183,
+        131,
+        232
+      ]
+    },
+    {
+      "name": "OathRevoked",
+      "discriminator": [
+        192,
+        8,
+        224,
+        244,
+        77,
+        60,
+        6,
+        159
+      ]
+    },
+    {
+      "name": "OathSlashed",
+      "discriminator": [
+        23,
+        151,
+        200,
+        36,
+        91,
+        63,
+        52,
+        44
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "UnauthorizedActionType",
+      "msg": "Action type is not in this oath's allowed list."
+    },
+    {
+      "code": 6001,
+      "name": "RecipientNotAllowed",
+      "msg": "Recipient is not in this oath's whitelist."
+    },
+    {
+      "code": 6002,
+      "name": "PerTxCapExceeded",
+      "msg": "Requested amount exceeds the per-transaction cap."
+    },
+    {
+      "code": 6003,
+      "name": "SpendCapExceeded",
+      "msg": "Cumulative spend would exceed this oath's spend cap."
+    },
+    {
+      "code": 6004,
+      "name": "OathExpired",
+      "msg": "Oath has expired."
+    },
+    {
+      "code": 6005,
+      "name": "OathNotActive",
+      "msg": "Oath is not active."
+    },
+    {
+      "code": 6006,
+      "name": "OathNotExpired",
+      "msg": "Oath has not yet expired."
+    },
+    {
+      "code": 6007,
+      "name": "ZeroStake",
+      "msg": "Stake amount must be greater than zero."
+    },
+    {
+      "code": 6008,
+      "name": "InvalidCaps",
+      "msg": "Per-tx cap cannot exceed spend cap."
+    },
+    {
+      "code": 6009,
+      "name": "ExpiryInPast",
+      "msg": "Expiry must be in the future."
+    },
+    {
+      "code": 6010,
+      "name": "TooManyActionTypes",
+      "msg": "Too many allowed action types (max 8)."
+    },
+    {
+      "code": 6011,
+      "name": "TooManyRecipients",
+      "msg": "Too many allowed recipients (max 16)."
+    },
+    {
+      "code": 6012,
+      "name": "PurposeUriTooLong",
+      "msg": "Purpose URI exceeds maximum length."
+    },
+    {
+      "code": 6013,
+      "name": "InvalidSlashProof",
+      "msg": "Slash proof is invalid or not signed by the oracle."
+    },
+    {
+      "code": 6014,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow."
+    }
+  ],
+  "types": [
+    {
+      "name": "ActionRecorded",
+      "docs": [
+        "Emitted on every successful `record_action`. Backend indexers feed",
+        "MongoDB from this event stream; the `seq` equals the post-increment",
+        "`action_count` so consumers can de-dupe."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oath",
+            "type": "pubkey"
+          },
+          {
+            "name": "seq",
+            "type": "u32"
+          },
+          {
+            "name": "action_type",
+            "type": {
+              "defined": {
+                "name": "ActionType"
+              }
+            }
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "spent_after",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ActionRejected",
+      "docs": [
+        "Emitted when the program rejects a `record_action` attempt. We",
+        "still want observability even though the instruction reverts, so",
+        "the backend's `logs_subscribe` also captures this via the error",
+        "variant. This event is purely for off-chain indexing of *successful*",
+        "rejections that were caught before the revert.",
+        "",
+        "Note: Anchor reverts clear state changes, so this event is only",
+        "emitted from instructions that explicitly log before returning Err."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oath",
+            "type": "pubkey"
+          },
+          {
+            "name": "action_type",
+            "type": {
+              "defined": {
+                "name": "ActionType"
+              }
+            }
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "reason",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ActionType",
+      "docs": [
+        "Categories of action an agent can take. The on-chain allowlist is",
+        "expressed as a `Vec<ActionType>` that must be a subset of this enum."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Payment"
+          },
+          {
+            "name": "DataRead"
+          },
+          {
+            "name": "ApiCall"
+          },
+          {
+            "name": "TokenTransfer"
+          },
+          {
+            "name": "Signature"
+          },
+          {
+            "name": "MultimodalInput"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateOathArgs",
+      "docs": [
+        "Arguments for `create_oath`, packaged into a struct so instruction",
+        "introspection (and the generated IDL) stays clean."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oath_id",
+            "type": "u64"
+          },
+          {
+            "name": "purpose_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "purpose_uri",
+            "type": "string"
+          },
+          {
+            "name": "spend_cap",
+            "type": "u64"
+          },
+          {
+            "name": "per_tx_cap",
+            "type": "u64"
+          },
+          {
+            "name": "stake_amount",
+            "type": "u64"
+          },
+          {
+            "name": "allowed_action_types",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ActionType"
+                }
+              }
+            }
+          },
+          {
+            "name": "allowed_recipients",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "allowed_domains_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Oath",
+      "docs": [
+        "A signed, scoped, time-bound, stake-backed commitment by an agent.",
+        "",
+        "PDA seeds: [\"oath\", user_pubkey, agent_pubkey, oath_id (u64 LE)].",
+        "",
+        "The stake vault is a separate system-owned PDA with zero data,",
+        "derived from this account's address. Its lamports represent the",
+        "agent's collateral.",
+        "",
+        "INVARIANTS:",
+        "- `spent <= spend_cap` at all times.",
+        "- `per_tx_cap <= spend_cap`.",
+        "- `status == Active` is required for every `record_action`.",
+        "- `status` transitions are one-way (enforced in handlers).",
+        "- `stake_amount > 0` at creation (zero-stake oaths are",
+        "meaningless since slashing cannot punish)."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "oath_id",
+            "type": "u64"
+          },
+          {
+            "name": "purpose_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "purpose_uri",
+            "type": "string"
+          },
+          {
+            "name": "spend_cap",
+            "type": "u64"
+          },
+          {
+            "name": "spent",
+            "type": "u64"
+          },
+          {
+            "name": "per_tx_cap",
+            "type": "u64"
+          },
+          {
+            "name": "stake_amount",
+            "type": "u64"
+          },
+          {
+            "name": "stake_vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "allowed_action_types",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "ActionType"
+                }
+              }
+            }
+          },
+          {
+            "name": "allowed_recipients",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "allowed_domains_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "OathStatus"
+              }
+            }
+          },
+          {
+            "name": "action_count",
+            "type": "u32"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OathCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oath",
+            "type": "pubkey"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "agent",
+            "type": "pubkey"
+          },
+          {
+            "name": "oath_id",
+            "type": "u64"
+          },
+          {
+            "name": "spend_cap",
+            "type": "u64"
+          },
+          {
+            "name": "per_tx_cap",
+            "type": "u64"
+          },
+          {
+            "name": "stake_amount",
+            "type": "u64"
+          },
+          {
+            "name": "expiry",
+            "type": "i64"
+          },
+          {
+            "name": "purpose_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OathExpiredEvent",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oath",
+            "type": "pubkey"
+          },
+          {
+            "name": "returned_to_agent",
+            "type": "u64"
+          },
+          {
+            "name": "keeper_fee",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OathFulfilled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oath",
+            "type": "pubkey"
+          },
+          {
+            "name": "returned_to_agent",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OathRevoked",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oath",
+            "type": "pubkey"
+          },
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "returned_to_agent",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OathSlashed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "oath",
+            "type": "pubkey"
+          },
+          {
+            "name": "slasher",
+            "type": "pubkey"
+          },
+          {
+            "name": "transferred_to_user",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OathStatus",
+      "docs": [
+        "Lifecycle states of an oath.",
+        "",
+        "INVARIANT: transitions are one-way. Active → {Revoked, Slashed,",
+        "Fulfilled, Expired}. Terminal states never transition again."
+      ],
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Revoked"
+          },
+          {
+            "name": "Slashed"
+          },
+          {
+            "name": "Fulfilled"
+          },
+          {
+            "name": "Expired"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RecordActionArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "action_type",
+            "type": {
+              "defined": {
+                "name": "ActionType"
+              }
+            }
+          },
+          {
+            "name": "recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SlashArgs",
+      "docs": [
+        "A slash is authorized by an Ed25519 signature from the oracle",
+        "over the bytes `oath_pda || violation_tx_sig`. The caller bundles",
+        "an Ed25519 precompile instruction as ix[0] of the transaction; our",
+        "handler introspects it via the instructions sysvar."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "violation_tx_sig",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
