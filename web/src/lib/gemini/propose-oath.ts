@@ -29,7 +29,7 @@ const FALLBACK_PROPOSAL = (request: string): OathProposal => ({
   allowed_action_types: ["Payment", "ApiCall"],
   allowed_recipient_hints: ["restaurant"],
   allowed_domains: ["places.googleapis.com"],
-  stake_amount_sol: 0.5,
+  stake_amount_sol: 0.1,
   reasoning:
     "Mock proposal (Gemini credential not configured). Conservative caps, short expiry.",
   voice_summary:

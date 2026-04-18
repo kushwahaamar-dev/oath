@@ -10,6 +10,7 @@ import { Transaction } from "@solana/web3.js";
 
 import { ActionTimeline, explorerAddress } from "@/components/action-timeline";
 import { AttackButton, ATTACK_PROMPT } from "@/components/attack-button";
+import { BalanceBadge } from "@/components/balance-badge";
 import { OathProposalCard } from "@/components/oath-proposal-card";
 import { SlashBanner } from "@/components/slash-banner";
 import { SiteHeader } from "@/components/site-header";
@@ -155,6 +156,10 @@ export default function ChatPage(): JSX.Element {
             </div>
             <WalletStatus />
           </motion.header>
+
+          <div className="mb-4">
+            <BalanceBadge />
+          </div>
 
           {/* Request composer */}
           <AnimatePresence initial={false}>

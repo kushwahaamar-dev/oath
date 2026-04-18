@@ -212,6 +212,30 @@ export async function slashOath(params: {
   return sig;
 }
 
+/**
+ * Build the `revoke_oath` instruction. Only the `user` needs to sign;
+ * the program returns the stake to the agent. The caller wraps it in a
+ * tx and sends it (via Phantom for the UI, via server keypair for tests).
+ */
+export async function buildRevokeIx(params: {
+  user: PublicKey;
+  oath: PublicKey;
+  agent: PublicKey;
+  vault: PublicKey;
+}): Promise<TransactionInstruction> {
+  const program = getOathProgram();
+  return program.methods
+    .revokeOath()
+    .accounts({
+      user: params.user,
+      oath: params.oath,
+      agent: params.agent,
+      stakeVault: params.vault,
+      systemProgram: SystemProgram.programId,
+    } as never)
+    .instruction();
+}
+
 /** Fetch an oath account and project it into a UI-friendly shape. */
 export async function fetchOathView(oath: PublicKey): Promise<OathView | null> {
   const program = getOathProgram();

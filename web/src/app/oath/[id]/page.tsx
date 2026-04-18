@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PublicKey } from "@solana/web3.js";
 
 import { explorerAddress, explorerTx } from "@/components/action-timeline";
+import { RevokeButton } from "@/components/revoke-button";
 import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,7 +60,15 @@ export default async function OathDetailPage({
               <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
                 Oath · #{view.oath_id}
               </div>
-              <Badge variant={statusVariant}>{view.status}</Badge>
+              <div className="flex items-center gap-3">
+                <Badge variant={statusVariant}>{view.status}</Badge>
+                {view.status === "Active" ? (
+                  <RevokeButton
+                    oathPda={view.oath_pda}
+                    userPubkey={view.user_pubkey}
+                  />
+                ) : null}
+              </div>
             </div>
             <CardTitle className="text-balance text-2xl leading-tight">
               {view.purpose}
