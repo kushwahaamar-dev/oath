@@ -1,0 +1,30 @@
+{
+  "name": "oath-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pre-commitment and enforcement protocol for AI agents.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "test": "anchor test",
+    "test:quick": "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts",
+    "lint": "prettier \"{tests,web/src}/**/*.{ts,tsx}\" --check",
+    "lint:fix": "prettier \"{tests,web/src}/**/*.{ts,tsx}\" -w"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
+    "@solana/web3.js": "^1.95.3"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.1.5",
+    "@types/chai": "^4.3.19",
+    "@types/mocha": "^10.0.8",
+    "@types/node": "^22.7.4",
+    "chai": "^4.5.0",
+    "mocha": "^10.7.3",
+    "prettier": "^3.3.3",
+    "ts-mocha": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "tweetnacl": "^1.0.3",
+    "typescript": "^5.5.4"
+  }
+}

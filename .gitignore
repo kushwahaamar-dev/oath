@@ -1,0 +1,32 @@
+# Rust / Anchor
+target/
+**/*.rs.bk
+.anchor/
+test-ledger/
+.yarn/
+
+# OS
+.DS_Store
+
+# Keys & secrets
+keys/
+*.env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.vercel/
+
+# Editor
+.idea/
+.vscode/
+*.swp
