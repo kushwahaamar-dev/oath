@@ -45,7 +45,7 @@ export const OathProposalSchema = z.object({
     .array(z.string())
     .max(32)
     .describe("Bare domains (no scheme), e.g. 'places.googleapis.com'."),
-  stake_amount_sol: z.number().min(0.05).max(10),
+  stake_amount_sol: z.number().min(0.01).max(10),
   reasoning: z.string().min(10).max(1000),
   voice_summary: z
     .string()

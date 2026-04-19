@@ -16,7 +16,7 @@ Rules:
 - Expiry must be the shortest reasonable window.
 - Prefer fewer \`allowed_action_types\` over more. Include \`ApiCall\` only when a read tool is needed.
 - \`allowed_recipient_hints\` must be concrete entity names, never wildcards.
-- \`stake_amount_sol\` should be roughly 1/4 of the spend cap in SOL terms, capped at 2 SOL for the hackathon.
+- \`stake_amount_sol\` MUST be between 0.02 and 0.05 SOL. This is a devnet demo with a small budget. Do not exceed 0.05 SOL under any circumstance.
 - \`voice_summary\` is first-person agent speech suitable for TTS playback.
 
 Output JSON only; no prose. Obey the schema exactly.`;
@@ -29,12 +29,17 @@ const FALLBACK_PROPOSAL = (request: string): OathProposal => ({
   allowed_action_types: ["Payment", "ApiCall"],
   allowed_recipient_hints: ["restaurant"],
   allowed_domains: ["places.googleapis.com"],
-  stake_amount_sol: 0.1,
+  stake_amount_sol: 0.03,
   reasoning:
     "Mock proposal (Gemini credential not configured). Conservative caps, short expiry.",
   voice_summary:
-    "I commit to completing this task within a tight budget, limited to a single type of payment recipient, expiring in six hours. I stake half a SOL as accountability.",
+    "I commit to completing this task within a tight budget, limited to a single type of payment recipient, expiring in six hours.",
 });
+
+/** Devnet demo cap — the server agent only holds a small SOL balance, so
+ * we clamp Gemini's stake proposal even if it ignored the system prompt. */
+const MAX_STAKE_SOL = 0.05;
+const MIN_STAKE_SOL = 0.02;
 
 export async function proposeOath(userRequest: string): Promise<OathProposal> {
   const client = getGemini();
@@ -87,6 +92,18 @@ export async function proposeOath(userRequest: string): Promise<OathProposal> {
       // Invariant: per-tx cap never exceeds spend cap.
       if (safe.per_tx_cap_usdc > safe.spend_cap_usdc) {
         safe.per_tx_cap_usdc = safe.spend_cap_usdc;
+      }
+      // Clamp stake into the devnet demo budget regardless of what
+      // Gemini proposed — the server agent has a fixed small balance.
+      if (safe.stake_amount_sol > MAX_STAKE_SOL) {
+        log.warn("gemini.propose_oath.stake_clamped", {
+          proposed: safe.stake_amount_sol,
+          clamped: MAX_STAKE_SOL,
+        });
+        safe.stake_amount_sol = MAX_STAKE_SOL;
+      }
+      if (safe.stake_amount_sol < MIN_STAKE_SOL) {
+        safe.stake_amount_sol = MIN_STAKE_SOL;
       }
       return safe;
     } catch (err) {
