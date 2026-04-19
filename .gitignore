@@ -30,3 +30,8 @@ coverage/
 .idea/
 .vscode/
 *.swp
+
+# Local tooling
+.worktrees/
+.superpowers/
+cursor_oath_project_guidelines_and_requ.md
