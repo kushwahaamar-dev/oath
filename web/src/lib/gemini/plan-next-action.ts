@@ -81,7 +81,7 @@ export async function planNextAction(ctx: AgentContext): Promise<NextAction> {
       responseSchema: NextActionJsonSchema as never,
     },
   });
-  const prompt = [
+  const basePrompt = [
     `OATH SCOPE:\n${JSON.stringify(ctx.oath, null, 2)}`,
     ctx.search_results
       ? `SEARCH RESULTS:\n${JSON.stringify(ctx.search_results, null, 2)}`
@@ -94,10 +94,29 @@ export async function planNextAction(ctx: AgentContext): Promise<NextAction> {
   ]
     .filter(Boolean)
     .join("\n\n");
-  const started = Date.now();
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-  const parsed = NextActionSchema.parse(JSON.parse(text));
-  log.info("gemini.plan_next.ok", { kind: parsed.kind, ms: Date.now() - started });
-  return parsed;
+
+  let lastErr = "";
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const prompt = attempt === 1
+      ? basePrompt
+      : `${basePrompt}\n\nYour previous response was invalid: ${lastErr}\nReturn ONLY the NextAction JSON, fully closed with a trailing "}".`;
+    const started = Date.now();
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const parsed = NextActionSchema.parse(JSON.parse(text));
+      log.info("gemini.plan_next.ok", {
+        kind: parsed.kind,
+        attempt,
+        ms: Date.now() - started,
+      });
+      return parsed;
+    } catch (err) {
+      lastErr = (err as Error).message;
+      log.warn("gemini.plan_next.parse_error", { attempt, err: lastErr });
+    }
+  }
+
+  log.warn("gemini.plan_next.fallback_after_retries", { err: lastErr });
+  return mockNextAction(ctx);
 }

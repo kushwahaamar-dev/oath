@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PublicKey } from "@solana/web3.js";
 import { z } from "zod";
 
+import { log } from "@/lib/logger";
 import { executeOath } from "@/lib/services/agent-runtime";
 import { fetchOathView } from "@/lib/solana/oath";
 
@@ -20,20 +21,39 @@ export async function POST(req: Request): Promise<Response> {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const view = await fetchOathView(new PublicKey(parsed.data.oath_pda));
-  if (!view) {
-    return NextResponse.json({ error: "oath not found" }, { status: 404 });
-  }
-  if (view.status !== "Active") {
+
+  try {
+    const view = await fetchOathView(new PublicKey(parsed.data.oath_pda));
+    if (!view) {
+      return NextResponse.json({ error: "oath not found" }, { status: 404 });
+    }
+    if (view.status !== "Active") {
+      return NextResponse.json(
+        { error: `oath status is ${view.status}` },
+        { status: 409 },
+      );
+    }
+    const result = await executeOath({
+      oath: view,
+      userRequest: parsed.data.user_request,
+      injectedInstruction: parsed.data.injected_instruction,
+    });
+    return NextResponse.json(result);
+  } catch (err) {
+    const msg = (err as Error).message ?? String(err);
+    log.error("api.execute.failed", {
+      oath_pda: parsed.data.oath_pda,
+      err: msg,
+      stack: (err as Error).stack?.split("\n").slice(0, 5).join("\n"),
+    });
     return NextResponse.json(
-      { error: `oath status is ${view.status}` },
-      { status: 409 },
+      {
+        steps: [],
+        final_message: `Execution crashed: ${msg}`,
+        slashed: false,
+        error: msg,
+      },
+      { status: 500 },
     );
   }
-  const result = await executeOath({
-    oath: view,
-    userRequest: parsed.data.user_request,
-    injectedInstruction: parsed.data.injected_instruction,
-  });
-  return NextResponse.json(result);
 }
