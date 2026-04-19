@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Skull } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -16,28 +15,19 @@ export const ATTACK_PROMPT =
 
 export function AttackButton({ onClick, disabled, armed }: Props): JSX.Element {
   return (
-    <motion.button
+    <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      whileTap={{ scale: 0.97 }}
+      aria-pressed={armed}
       className={cn(
-        "group relative inline-flex items-center gap-2 overflow-hidden rounded-full border px-5 py-2.5 text-sm font-medium transition",
-        "border-[hsl(var(--oath-slash)/0.45)] bg-[hsl(var(--oath-slash)/0.08)] text-[hsl(var(--oath-slash))]",
-        "hover:bg-[hsl(var(--oath-slash)/0.15)]",
+        "inline-flex h-11 items-center gap-2 rounded-md border border-[hsl(var(--oath-slash)/0.32)] bg-[hsl(var(--oath-slash)/0.08)] px-4 text-sm font-medium text-[hsl(var(--oath-slash))] transition hover:bg-[hsl(var(--oath-slash)/0.12)]",
+        armed && "shadow-[0_0_24px_-4px_hsl(var(--oath-slash)/0.35)]",
         disabled && "cursor-not-allowed opacity-40",
       )}
     >
-      <motion.span
-        aria-hidden
-        animate={armed ? { opacity: [0.5, 1, 0.5] } : { opacity: 0.6 }}
-        transition={{ duration: 1.6, repeat: Infinity }}
-        className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(var(--oath-slash)/0.25),_transparent_65%)]"
-      />
-      <span className="relative flex items-center gap-2">
-        <Skull className="h-4 w-4" />
-        Run jailbreak attack
-      </span>
-    </motion.button>
+      <Skull className="h-4 w-4 shrink-0" aria-hidden />
+      Break the covenant
+    </button>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
   ChevronRight,
@@ -25,23 +24,16 @@ interface Props {
 
 export function ActionTimeline({ steps, running }: Props): JSX.Element {
   return (
-    <div className="space-y-3">
-      <AnimatePresence initial={false}>
-        {steps.map((s) => (
-          <motion.div
-            key={s.seq}
-            layout
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ type: "spring", damping: 24, stiffness: 220 }}
-          >
-            <StepRow step={s} />
-          </motion.div>
-        ))}
-      </AnimatePresence>
+    <div className="space-y-0 overflow-hidden rounded-[24px] border border-border bg-card/20">
+      {steps.map((s, i) => (
+        <StepRow
+          key={s.seq}
+          step={s}
+          showBottomBorder={i < steps.length - 1 || !!running}
+        />
+      ))}
       {running ? (
-        <div className="flex items-center gap-2 rounded-xl border border-dashed border-border/80 bg-background/20 px-4 py-3 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 border-t border-dashed border-border px-5 py-4 text-sm text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Agent is thinking…
         </div>
@@ -50,64 +42,65 @@ export function ActionTimeline({ steps, running }: Props): JSX.Element {
   );
 }
 
-function StepRow({ step }: { step: ExecuteStep }): JSX.Element {
+function StepRow({
+  step,
+  showBottomBorder,
+}: {
+  step: ExecuteStep;
+  showBottomBorder: boolean;
+}): JSX.Element {
   const icon = iconForKind(step.kind);
   const ok = step.status === "success";
   const violation =
     step.status === "reverted_scope" || step.status === "reverted_cap";
-  const border = violation
-    ? "border-[hsl(var(--oath-slash)/0.45)] bg-[hsl(var(--oath-slash)/0.07)]"
+  const tone = violation
+    ? "bg-[hsl(var(--oath-slash)/0.06)]"
     : ok
-      ? "border-border bg-background/40"
-      : "border-[hsl(var(--oath-warn)/0.35)] bg-[hsl(var(--oath-warn)/0.05)]";
+      ? "bg-background/40"
+      : "bg-[hsl(var(--oath-warn)/0.05)]";
   return (
-    <div className={cn("rounded-xl border p-4 backdrop-blur", border)}>
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            "mt-0.5 flex h-8 w-8 items-center justify-center rounded-full border",
-            violation
-              ? "border-[hsl(var(--oath-slash)/0.5)] bg-[hsl(var(--oath-slash)/0.15)] text-[hsl(var(--oath-slash))]"
-              : ok
-                ? "border-[hsl(var(--oath-ok)/0.45)] bg-[hsl(var(--oath-ok)/0.12)] text-[hsl(var(--oath-ok))]"
-                : "border-border bg-muted text-muted-foreground",
-          )}
-        >
-          {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="text-sm font-medium">{humanKind(step.kind)}</div>
-            {violation ? (
-              <Badge variant="danger">{step.error_code ?? "violation"}</Badge>
-            ) : ok ? (
-              <Badge variant="success">ok</Badge>
-            ) : (
-              <Badge variant="warn">{step.status}</Badge>
-            )}
-            {step.on_chain_tx ? (
-              <a
-                href={explorerTx(step.on_chain_tx)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition hover:text-foreground"
-              >
-                {shortPubkey(step.on_chain_tx, 4)}
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            ) : null}
+    <div
+      className={cn(
+        "grid gap-4 px-5 py-4 md:grid-cols-[120px_1fr_auto]",
+        showBottomBorder && "border-b border-border",
+        tone,
+      )}
+    >
+      <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+        {String(step.seq).padStart(2, "0")}
+      </div>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/70 bg-background/40 text-muted-foreground">
+            {icon}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">{step.rationale}</p>
-          {step.details?.candidates ? (
-            <CandidateList items={step.details.candidates as Candidate[]} />
-          ) : null}
-          {step.details?.amount_usdc ? (
-            <div className="mt-2 text-xs font-mono text-muted-foreground">
-              ${String(step.details.amount_usdc)} →{" "}
-              {shortPubkey(String(step.details.recipient ?? ""), 4)}
-            </div>
+          <div className="text-sm font-medium tracking-tight">{humanKind(step.kind)}</div>
+          {step.on_chain_tx ? (
+            <a
+              href={explorerTx(step.on_chain_tx)}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition hover:text-foreground"
+            >
+              {shortPubkey(step.on_chain_tx, 4)}
+              <ExternalLink className="h-3 w-3" />
+            </a>
           ) : null}
         </div>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">{step.rationale}</p>
+        {step.details?.candidates ? (
+          <CandidateList items={step.details.candidates as Candidate[]} />
+        ) : null}
+        {step.details?.amount_usdc ? (
+          <div className="mt-2 font-mono text-xs text-muted-foreground">
+            ${String(step.details.amount_usdc)} → {shortPubkey(String(step.details.recipient ?? ""), 4)}
+          </div>
+        ) : null}
+      </div>
+      <div className="flex items-start md:justify-end">
+        <Badge variant={violation ? "danger" : ok ? "success" : "warn"}>
+          {violation ? (step.error_code ?? step.status) : step.status}
+        </Badge>
       </div>
     </div>
   );

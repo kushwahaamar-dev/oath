@@ -57,7 +57,7 @@ const config: Config = {
       },
       fontFamily: {
         mono: ["var(--font-mono)"],
-        sans: ["var(--font-sans)"],
+        sans: ["var(--font-ui)", "var(--font-sans)"],
       },
       keyframes: {
         shimmer: {
