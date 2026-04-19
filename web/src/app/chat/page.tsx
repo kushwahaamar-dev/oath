@@ -25,6 +25,7 @@ import { env } from "@/lib/config";
 import {
   apiExecute,
   apiPlan,
+  apiSignTx,
   type ExecuteResponse,
   type PlanResponse,
 } from "@/lib/client/api";
@@ -79,7 +80,15 @@ export default function ChatPage(): JSX.Element {
     if (!state.plan || !publicKey || !signTransaction) return;
     setState((s) => ({ ...s, phase: "submitting", error: undefined }));
     try {
-      const raw = Buffer.from(state.plan.partial_signed_tx_b64, "base64");
+      // Fetch a fresh partial-signed tx right before the Phantom popup so
+      // the blockhash is maximally fresh (avoids "Blockhash not found").
+      const signReq = await apiSignTx({
+        proposal: state.plan.proposal,
+        user_pubkey: publicKey.toBase58(),
+        agent_pubkey: state.plan.agent_pubkey,
+        oath_id: state.plan.oath_id,
+      });
+      const raw = Buffer.from(signReq.partial_signed_tx_b64, "base64");
       const tx = Transaction.from(raw);
       const signed = await signTransaction(tx);
       const sig = await connection.sendRawTransaction(signed.serialize(), {
@@ -89,8 +98,8 @@ export default function ChatPage(): JSX.Element {
       await connection.confirmTransaction(
         {
           signature: sig,
-          blockhash: state.plan.blockhash,
-          lastValidBlockHeight: state.plan.last_valid_block_height,
+          blockhash: signReq.blockhash,
+          lastValidBlockHeight: signReq.last_valid_block_height,
         },
         "confirmed",
       );

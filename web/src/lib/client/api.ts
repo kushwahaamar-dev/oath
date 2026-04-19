@@ -9,6 +9,12 @@ export interface PlanResponse {
   oath_id: string;
   expiry_unix: number;
   voice_audio_b64: string | null;
+}
+
+export interface SignTxResponse {
+  oath_pda: string;
+  stake_vault: string;
+  expiry_unix: number;
   partial_signed_tx_b64: string;
   blockhash: string;
   last_valid_block_height: number;
@@ -52,6 +58,15 @@ export function apiPlan(body: {
   oath_id?: string;
 }): Promise<PlanResponse> {
   return postJson<PlanResponse>("/api/agent/plan", body);
+}
+
+export function apiSignTx(body: {
+  proposal: OathProposal;
+  user_pubkey: string;
+  agent_pubkey?: string;
+  oath_id: string;
+}): Promise<SignTxResponse> {
+  return postJson<SignTxResponse>("/api/agent/sign-tx", body);
 }
 
 export function apiExecute(body: {
