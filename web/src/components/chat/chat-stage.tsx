@@ -6,10 +6,10 @@ import { SceneShell } from "@/components/scene/scene-shell";
 import type { OathVisualState } from "@/components/scene/types";
 
 const STAGE_MARKERS = [
-  { id: "01", label: "Draft" },
-  { id: "02", label: "Sign" },
-  { id: "03", label: "Record" },
-  { id: "04", label: "Slash" },
+  { id: "01", label: "Draft", hint: "Agent proposes terms" },
+  { id: "02", label: "Sign", hint: "User signs on-chain" },
+  { id: "03", label: "Record", hint: "Every action verified" },
+  { id: "04", label: "Slash", hint: "Scope violation → stake forfeit" },
 ] as const;
 
 interface ChatStageProps {
@@ -20,22 +20,16 @@ interface ChatStageProps {
 export function ChatStage({ state, title }: ChatStageProps): JSX.Element {
   return (
     <section className="overflow-hidden rounded-[2rem] border border-border/60 bg-card/20">
-      <div className="border-b border-border/60 px-5 py-4">
-        <p className="font-ui text-[11px] uppercase tracking-[0.32em] text-muted-foreground">
-          Oath stage
-        </p>
-        <h2 className="font-display mt-3 text-2xl font-semibold tracking-tight">{title}</h2>
-      </div>
-
-      <div className="p-5">
-        <SceneShell label={title} state={state} />
-      </div>
+      <SceneShell label={title} state={state} />
 
       <div className="grid gap-px border-t border-border/60 bg-border/60 sm:grid-cols-4">
         {STAGE_MARKERS.map((marker) => (
-          <div key={marker.id} className="bg-card/60 px-4 py-3">
+          <div key={marker.id} className="space-y-1 bg-card/60 px-4 py-3">
             <div className="font-mono text-[11px] uppercase tracking-[0.32em] text-muted-foreground">
               {marker.id} / {marker.label}
+            </div>
+            <div className="font-ui text-[11px] leading-relaxed text-muted-foreground/70">
+              {marker.hint}
             </div>
           </div>
         ))}

@@ -77,7 +77,7 @@ describe("SceneShell", () => {
 
     render(createElement(LoadingFallback as ComponentType, {}));
 
-    expect(screen.getByText("Scene fallback")).toBeInTheDocument();
+    expect(screen.getByText("Loading scene")).toBeInTheDocument();
     expect(screen.getByText(/webgl fallback loaded/i)).toBeInTheDocument();
   });
 
@@ -92,8 +92,8 @@ describe("SceneShell", () => {
       }),
     );
 
-    expect(screen.getByText("Oath Chamber")).toBeInTheDocument();
-    expect(screen.getByText("active")).toBeInTheDocument();
+    expect(screen.getByText("Oath is live")).toBeInTheDocument();
+    expect(screen.getByText("Sworn")).toBeInTheDocument();
     expect(screen.getByText(/reduced motion/i)).toBeInTheDocument();
     expect(screen.queryByTestId("dynamic-scene")).not.toBeInTheDocument();
   });
@@ -122,9 +122,8 @@ describe("SceneShell", () => {
     );
     const queries = within(view.container);
 
-    expect(queries.getByText("Scene fallback")).toBeInTheDocument();
-    expect(queries.getByText("Oath Chamber")).toBeInTheDocument();
-    expect(queries.getByText(/webgl fallback loaded/i)).toBeInTheDocument();
+    expect(queries.getByText("Oath is live")).toBeInTheDocument();
+    expect(queries.getByText("Sworn")).toBeInTheDocument();
     expect(queries.queryByTestId("dynamic-scene")).not.toBeInTheDocument();
 
     consoleErrorSpy.mockRestore();

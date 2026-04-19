@@ -17,7 +17,7 @@ export function DashboardHeroRail(): JSX.Element {
           the theatrical framing of the landing or chat chamber.
         </p>
       </div>
-      <SceneShell label="Dashboard echo" state="active" compact />
+      <SceneShell label="Live oath" state="active" compact />
     </section>
   );
 }

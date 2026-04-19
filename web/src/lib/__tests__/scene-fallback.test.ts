@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import { SceneFallback } from "@/components/scene/scene-fallback";
 
 describe("SceneFallback", () => {
-  it("renders the label, visible state, and reduced motion messaging", () => {
+  it("renders oath-meaningful copy for a known state and reduced motion messaging", () => {
     render(
       createElement(SceneFallback, {
         label: "Oath Chamber",
@@ -17,12 +17,12 @@ describe("SceneFallback", () => {
       }),
     );
 
-    expect(screen.getByText("Oath Chamber")).toBeInTheDocument();
-    expect(screen.getByText("idle")).toBeInTheDocument();
+    expect(screen.getByText("No oath sworn")).toBeInTheDocument();
+    expect(screen.getByText("Unbound")).toBeInTheDocument();
     expect(screen.getByText(/reduced motion/i)).toBeInTheDocument();
   });
 
-  it("renders the default WebGL fallback branch", () => {
+  it("falls back to the provided label for an unknown state", () => {
     render(
       createElement(SceneFallback, {
         label: "Oath Chamber",
@@ -30,6 +30,7 @@ describe("SceneFallback", () => {
       }),
     );
 
+    expect(screen.getByText("Oath Chamber")).toBeInTheDocument();
     expect(screen.getByText("stabilizing")).toBeInTheDocument();
     expect(screen.getByText(/webgl fallback loaded/i)).toBeInTheDocument();
   });

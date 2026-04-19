@@ -8,6 +8,7 @@ import * as THREE from "three";
 import { HaloField } from "@/components/scene/halo-field";
 import { MonolithModel } from "@/components/scene/monolith-model";
 import { getScenePreset } from "@/components/scene/scene-presets";
+import { STATE_COPY } from "@/components/scene/scene-copy";
 import type { OathVisualState, SceneComponentProps } from "@/components/scene/types";
 
 type SceneBodyProps = {
@@ -56,21 +57,28 @@ export function MonolithScene({
 }: SceneComponentProps): JSX.Element {
   const sceneHeight = compact ? "h-[320px]" : "h-[440px]";
   const cameraFov = compact ? 34 : 28;
+  const copy = STATE_COPY[state];
 
   return (
-    <section className="chamber-surface relative overflow-hidden rounded-[2rem] p-4 sm:p-6" aria-label={label}>
+    <section
+      className="chamber-surface relative overflow-hidden rounded-[2rem] p-4 sm:p-6"
+      aria-label={label ?? copy.title}
+    >
       <div aria-hidden className="halo-noise absolute inset-0 opacity-70" />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-4 p-4 sm:p-6">
         <div className="space-y-2">
           <p className="font-ui text-[11px] uppercase tracking-[0.34em] text-muted-foreground">
-            Monolith chamber
+            Live oath state
           </p>
-          <h2 className="font-display text-2xl text-foreground sm:text-3xl">{label}</h2>
+          <h2 className="font-display text-2xl text-foreground sm:text-3xl">{copy.title}</h2>
+          <p className="max-w-[28ch] font-ui text-[12px] leading-relaxed text-muted-foreground">
+            {copy.description}
+          </p>
         </div>
 
-        <div className="rounded-full border border-white/10 bg-black/20 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-          {state}
+        <div className="rounded-full border border-white/10 bg-black/40 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.22em] text-foreground/80">
+          {copy.badge}
         </div>
       </div>
 
@@ -85,6 +93,20 @@ export function MonolithScene({
           <fog attach="fog" args={["#05070c", 4.2, 7.8]} />
           <SceneBody state={state} />
         </Canvas>
+      </div>
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-center gap-x-4 gap-y-1 p-4 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground sm:p-6">
+        <span>
+          <span className="text-foreground/80">Ring</span> = scope boundary
+        </span>
+        <span aria-hidden className="text-muted-foreground/40">·</span>
+        <span>
+          <span className="text-foreground/80">Slab</span> = signed oath
+        </span>
+        <span aria-hidden className="text-muted-foreground/40">·</span>
+        <span>
+          <span className="text-foreground/80">Fracture</span> = slash event
+        </span>
       </div>
     </section>
   );

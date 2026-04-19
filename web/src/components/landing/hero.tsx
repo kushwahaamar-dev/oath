@@ -12,7 +12,7 @@ export function Hero({ programId }: { programId: string }): JSX.Element {
             Protocol chamber
           </p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-[11px] uppercase tracking-[0.28em] text-muted-foreground lg:justify-start">
-            <span className="font-ui">Protocol / Halo Monolith</span>
+            <span className="font-ui">Solana · Devnet</span>
             <span className="hidden h-1 w-1 rounded-full bg-border md:inline-block" />
             <span className="font-mono break-all">Program / {programId}</span>
           </div>
@@ -47,7 +47,7 @@ export function Hero({ programId }: { programId: string }): JSX.Element {
             aria-hidden
             className="pointer-events-none absolute inset-8 -z-10 rounded-full bg-[radial-gradient(circle,_hsl(var(--foreground)/0.12),_transparent_68%)] blur-3xl"
           />
-          <SceneShell label="Halo Monolith" state="idle" />
+          <SceneShell label="Oath protocol" state="idle" />
         </div>
       </div>
     </section>
