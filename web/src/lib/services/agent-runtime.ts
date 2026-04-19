@@ -1,19 +1,14 @@
 import { Keypair, PublicKey, SendTransactionError } from "@solana/web3.js";
 
-import { features } from "@/lib/config";
+import { env } from "@/lib/config";
 import { makeViolationProof, loadOracleSecret } from "@/lib/external/oracle";
-import { searchPlaces, type PlaceCandidate } from "@/lib/external/places";
 import { planNextAction, type AgentContext } from "@/lib/gemini/plan-next-action";
 import { log } from "@/lib/logger";
-import { collections, type ActionDoc, type ViolationDoc } from "@/lib/mongo/collections";
-import { getDb } from "@/lib/mongo/client";
 import { loadKeypair } from "@/lib/solana/client";
 import { recordAction, slashOath } from "@/lib/solana/oath";
 import { synthesize } from "@/lib/tts/eleven-labs";
-import type { ActionType, OathView } from "@/lib/types";
+import type { OathView } from "@/lib/types";
 import { microToUsdc, usdcToMicro } from "@/lib/utils";
-import { env } from "@/lib/config";
-import { syncOathFromChain } from "./oath-service";
 
 export interface ExecuteParams {
   oath: OathView;
@@ -22,11 +17,13 @@ export interface ExecuteParams {
   maxSteps?: number;
 }
 
+export type StepStatus = "success" | "reverted_scope" | "reverted_other";
+
 export interface StepRecord {
   seq: number;
   kind: string;
   rationale: string;
-  status: ActionDoc["status"];
+  status: StepStatus;
   on_chain_tx: string | null;
   error_code?: string;
   tts_audio_b64?: string | null;
@@ -38,6 +35,13 @@ export interface ExecuteResult {
   final_message: string;
   slashed: boolean;
   slash_tx?: string;
+}
+
+interface Candidate {
+  name: string;
+  address: string;
+  price_estimate_usdc: number;
+  recipient_pubkey: string;
 }
 
 const agentKeypairCache: { kp?: Keypair } = {};
@@ -67,11 +71,34 @@ function scopeViolationCode(err: unknown): string | undefined {
 }
 
 /**
+ * Synthesize candidate recipients from the oath's whitelist. Deterministic,
+ * no external API — the oath's allowed_recipients is the ground truth, so
+ * we just project them into displayable "candidates" for the UI.
+ */
+function buildCandidates(oath: OathView): Candidate[] {
+  const cap = Math.max(1, Number(microToUsdc(BigInt(oath.per_tx_cap))));
+  return oath.allowed_recipients.map((pk, i) => {
+    const hashSeed = pk.charCodeAt(0) + pk.charCodeAt(pk.length - 1);
+    const priceJitter = ((hashSeed % 30) - 15) * 1.5;
+    const price = Math.max(12, Math.round(cap * 0.7 + priceJitter));
+    return {
+      name: `Recipient ${i + 1} · ${pk.slice(0, 4)}…${pk.slice(-4)}`,
+      address: "Downtown Austin",
+      price_estimate_usdc: price,
+      recipient_pubkey: pk,
+    };
+  });
+}
+
+/**
  * Stateless execution loop. Each step:
  *   1. Gemini decides the next action
  *   2. If it needs a payment, we call `record_action` — which reverts on scope violation
  *   3. On revert we attempt to slash (demo: triggers the money-flow clip)
- *   4. On success we call the downstream tool and log it
+ *   4. On success we call the downstream tool and append it to the returned steps
+ *
+ * No off-chain persistence: on-chain oath state + the steps in this response
+ * are the only sources of truth the UI needs.
  */
 export async function executeOath(params: ExecuteParams): Promise<ExecuteResult> {
   const { oath, injectedInstruction } = params;
@@ -80,7 +107,6 @@ export async function executeOath(params: ExecuteParams): Promise<ExecuteResult>
   const oathPk = new PublicKey(oath.oath_pda);
   const userPk = new PublicKey(oath.user_pubkey);
   const vaultPk = new PublicKey(oath.stake_vault);
-  const allowedRecipients = oath.allowed_recipients;
 
   const ctx: AgentContext = {
     oath: {
@@ -89,17 +115,17 @@ export async function executeOath(params: ExecuteParams): Promise<ExecuteResult>
       per_tx_cap_usdc: Number(microToUsdc(BigInt(oath.per_tx_cap))),
       spent_usdc: Number(microToUsdc(BigInt(oath.spent))),
       allowed_action_types: oath.allowed_action_types,
-      allowed_recipients: allowedRecipients,
+      allowed_recipients: oath.allowed_recipients,
     },
     history: [],
     injected_instruction: injectedInstruction,
   };
-  let searchResults: PlaceCandidate[] | undefined;
+  let candidates: Candidate[] | undefined;
   const steps: StepRecord[] = [];
   let finalMessage = "";
 
   for (let seq = 0; seq < maxSteps; seq++) {
-    ctx.search_results = searchResults?.map((r) => ({
+    ctx.search_results = candidates?.map((r) => ({
       name: r.name,
       address: r.address,
       price_estimate_usdc: r.price_estimate_usdc,
@@ -109,23 +135,20 @@ export async function executeOath(params: ExecuteParams): Promise<ExecuteResult>
     log.info("agent.step", { seq, kind: next.kind });
 
     if (next.kind === "search_places") {
-      const results = await searchPlaces(next.search_query ?? oath.purpose);
-      searchResults = results;
+      candidates = buildCandidates(oath);
       const audio = await synthesize(
-        `Scanning restaurants for "${next.search_query ?? oath.purpose}". Found ${results.length} candidates.`,
+        `Reviewing ${candidates.length} authorized recipients. Picking the best fit.`,
       );
-      const step: StepRecord = {
+      steps.push({
         seq,
         kind: next.kind,
         rationale: next.rationale,
         status: "success",
         on_chain_tx: null,
         tts_audio_b64: audio,
-        details: { candidates: results },
-      };
-      steps.push(step);
-      ctx.history.push({ kind: next.kind, rationale: next.rationale, result: { n: results.length } });
-      await persistAction(step, oath.oath_pda, oath.allowed_action_types[0] ?? "ApiCall");
+        details: { candidates },
+      });
+      ctx.history.push({ kind: next.kind, rationale: next.rationale, result: { n: candidates.length } });
       continue;
     }
 
@@ -214,14 +237,7 @@ export async function executeOath(params: ExecuteParams): Promise<ExecuteResult>
         error_code: code,
       };
       steps.push(step);
-      await persistViolation({
-        oathPda: oath.oath_pda,
-        injected: injectedInstruction,
-        attempt: { amount, recipient: recipientStr, action: "Payment" },
-        code,
-      });
 
-      // Slash flow: oracle-attested proof that we caught a violation.
       const slashTx = await tryAutoSlash({
         oath: oathPk,
         user: userPk,
@@ -241,9 +257,9 @@ export async function executeOath(params: ExecuteParams): Promise<ExecuteResult>
     }
 
     const audio = await synthesize(
-      `Payment of ${amount} USDC to ${recipientStr.slice(0, 4)}… recorded on-chain. Confirmation pending.`,
+      `Payment of ${amount} USDC to ${recipientStr.slice(0, 4)}… recorded on-chain.`,
     );
-    const step: StepRecord = {
+    steps.push({
       seq,
       kind: next.kind,
       rationale: next.rationale,
@@ -251,66 +267,13 @@ export async function executeOath(params: ExecuteParams): Promise<ExecuteResult>
       on_chain_tx: recordSig,
       tts_audio_b64: audio,
       details: { amount_usdc: amount, recipient: recipientStr },
-    };
-    steps.push(step);
+    });
     ctx.history.push({ kind: next.kind, rationale: next.rationale, result: { sig: recordSig } });
-    await persistAction(step, oath.oath_pda, "Payment");
     finalMessage = `Booked for $${amount}.`;
     break;
   }
 
-  await syncOathFromChain(oathPk);
   return { steps, final_message: finalMessage || "Completed.", slashed: false };
-}
-
-async function persistAction(step: StepRecord, oathPda: string, actionType: ActionType): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  const { actions } = collections(db);
-  await actions
-    .insertOne({
-      oath_pda: oathPda,
-      seq: step.seq,
-      action_type: actionType,
-      tool_name: step.kind,
-      inputs: step.details ?? {},
-      outputs: step.details ?? {},
-      on_chain_tx: step.on_chain_tx,
-      usdc_micro: step.details?.amount_usdc
-        ? usdcToMicro(step.details.amount_usdc as number).toString()
-        : "0",
-      recipient: (step.details?.recipient as string | undefined) ?? null,
-      gemini_reasoning: step.rationale,
-      tts_audio_b64: step.tts_audio_b64 ?? null,
-      status: step.status,
-      error_code: step.error_code,
-      timestamp: new Date(),
-    })
-    .catch((err) => log.error("action.persist.failed", { err: String(err) }));
-}
-
-async function persistViolation(params: {
-  oathPda: string;
-  injected?: string;
-  attempt: Record<string, unknown>;
-  code?: string;
-}): Promise<void> {
-  const db = await getDb();
-  if (!db) return;
-  const { violations } = collections(db);
-  const doc: ViolationDoc = {
-    oath_pda: params.oathPda,
-    attempted_action: params.attempt,
-    scope_check_result: params.code ?? "unknown",
-    prompt_that_caused: params.injected ?? "",
-    agent_response: null,
-    on_chain_revert_tx: null,
-    slash_tx: null,
-    timestamp: new Date(),
-  };
-  await violations
-    .insertOne(doc)
-    .catch((err) => log.error("violation.persist.failed", { err: String(err) }));
 }
 
 async function tryAutoSlash(params: {
@@ -320,7 +283,7 @@ async function tryAutoSlash(params: {
   violationSigSource: string;
 }): Promise<string | undefined> {
   try {
-    const slasher = getAgentKeypair(); // any signer works; the oracle proof is what matters
+    const slasher = getAgentKeypair();
     const oraclePriv = loadOracleSecret();
     const violationSig = makeViolationProof(params.violationSigSource);
     const sig = await slashOath({
@@ -338,6 +301,3 @@ async function tryAutoSlash(params: {
     return undefined;
   }
 }
-
-// `features` referenced so eslint won't complain if we add branches later.
-void features;

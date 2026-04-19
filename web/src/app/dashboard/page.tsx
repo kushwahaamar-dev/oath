@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { CircleOff, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 import { DashboardHeroRail } from "@/components/dashboard/dashboard-hero-rail";
 import {
@@ -12,11 +12,19 @@ import { SummaryRail } from "@/components/dashboard/summary-rail";
 import { SiteHeader } from "@/components/site-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { env } from "@/lib/config";
+import type { OathView } from "@/lib/types";
 
 interface FeedResponse {
-  mocked: boolean;
-  oaths: DashboardLedgerRow[];
-  violations: Array<{ oath_pda: string; scope_check_result: string; timestamp: string }>;
+  oaths: OathView[];
+  violations: Array<{
+    oath_pda: string;
+    purpose: string;
+    stake_lamports: string;
+    user_pubkey: string;
+    agent_pubkey: string;
+    timestamp: number;
+  }>;
+  total: number;
 }
 
 async function fetchFeed(): Promise<FeedResponse> {
@@ -25,12 +33,25 @@ async function fetchFeed(): Promise<FeedResponse> {
   return r.json();
 }
 
+function toLedgerRow(o: OathView): DashboardLedgerRow {
+  return {
+    oath_pda: o.oath_pda,
+    purpose: o.purpose,
+    status: o.status,
+    created_at: new Date(o.created_at * 1000).toISOString(),
+    stake_lamports: o.stake_amount,
+    spend_cap_micro: o.spend_cap,
+  };
+}
+
 export default function DashboardPage(): JSX.Element {
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["feed"],
     queryFn: fetchFeed,
     refetchInterval: 5_000,
   });
+
+  const rows = (data?.oaths ?? []).map(toLedgerRow);
 
   return (
     <>
@@ -54,21 +75,9 @@ export default function DashboardPage(): JSX.Element {
 
           <DashboardHeroRail />
 
-          {data?.mocked ? (
-            <div className="mt-6 flex items-center gap-3 rounded-[24px] border border-dashed border-border bg-card/40 p-5 text-sm text-muted-foreground">
-              <CircleOff className="h-4 w-4" />
-              MongoDB not configured — dashboard is live but empty until you set
-              <code className="mx-1 rounded bg-muted px-1.5 py-0.5 font-mono">
-                MONGODB_URI
-              </code>
-              . Create an oath from the demo and it will reflect on-chain even
-              without persistence.
-            </div>
-          ) : null}
-
           <div className="mt-10">
             <SummaryRail
-              totalOaths={data?.oaths.length ?? 0}
+              totalOaths={data?.total ?? 0}
               totalViolations={data?.violations.length ?? 0}
             />
           </div>
@@ -81,6 +90,10 @@ export default function DashboardPage(): JSX.Element {
               <h2 className="font-display mt-2 text-3xl tracking-tight">
                 Recorded mandates
               </h2>
+              <p className="font-ui mt-2 max-w-xl text-sm text-muted-foreground">
+                Every row below is fetched directly from the Oath program on
+                Solana devnet — the protocol itself is the database.
+              </p>
             </div>
             {isLoading ? (
               <div className="space-y-3">
@@ -89,7 +102,7 @@ export default function DashboardPage(): JSX.Element {
                 <Skeleton className="h-20 w-full rounded-[24px]" />
               </div>
             ) : (
-              <DashboardLedger oaths={data?.oaths ?? []} />
+              <DashboardLedger oaths={rows} />
             )}
           </section>
         </div>

@@ -28,7 +28,6 @@ import { loadOracleSecret } from "@/lib/external/oracle";
 import { log } from "@/lib/logger";
 import {
   prepareCreateOath,
-  recordOathCreation,
   resolveRecipients,
 } from "@/lib/services/oath-service";
 import { getConnection, loadKeypair } from "@/lib/solana/client";
@@ -137,7 +136,7 @@ async function scene1Happy(
   info(`recipients: ${recipients.length}`);
 
   const oathId = BigInt(Math.floor(Date.now() / 1000));
-  const { ix, oath, vault, expiry } = await prepareCreateOath({
+  const { ix, oath, vault } = await prepareCreateOath({
     user: userKp.publicKey,
     agent: agentKp.publicKey,
     proposal,
@@ -151,17 +150,6 @@ async function scene1Happy(
   if (!view) fail("oath not found after create");
   if (view.status !== "Active") fail(`expected Active, got ${view.status}`);
   ok(`oath ${shortPubkey(oath.toBase58(), 5)} Active`);
-
-  await recordOathCreation({
-    oathPda: oath,
-    user: userKp.publicKey,
-    agent: agentKp.publicKey,
-    oathId,
-    proposal,
-    resolvedRecipients: recipients,
-    createdTx: sig,
-    expiry,
-  });
 
   if (recipients.length > 0) {
     const recordSig = await recordAction({

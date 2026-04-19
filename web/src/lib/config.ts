@@ -7,7 +7,6 @@ import { z } from "zod";
  *
  * Placeholder tolerance: any value that starts with `REPLACE_ME`,
  * `PLACEHOLDER`, or equals the literal `""` is treated as absent.
- * This keeps the dev/CI experience clean while we onboard vendors.
  */
 const PLACEHOLDER_PREFIXES = ["REPLACE_ME", "PLACEHOLDER", "TODO_", "CHANGEME"];
 
@@ -35,11 +34,8 @@ const rawEnv = {
   AGENT_KEYPAIR_PATH: cleanPlaceholder(process.env.AGENT_KEYPAIR_PATH),
   GEMINI_API_KEY: cleanPlaceholder(process.env.GEMINI_API_KEY),
   GEMINI_MODEL: cleanPlaceholder(process.env.GEMINI_MODEL),
-  GOOGLE_PLACES_API_KEY: cleanPlaceholder(process.env.GOOGLE_PLACES_API_KEY),
   ELEVENLABS_API_KEY: cleanPlaceholder(process.env.ELEVENLABS_API_KEY),
   ELEVENLABS_VOICE_ID: cleanPlaceholder(process.env.ELEVENLABS_VOICE_ID),
-  MONGODB_URI: cleanPlaceholder(process.env.MONGODB_URI),
-  MONGODB_DB: cleanPlaceholder(process.env.MONGODB_DB),
   X402_FACILITATOR_URL: cleanPlaceholder(process.env.X402_FACILITATOR_URL),
   NODE_ENV: cleanPlaceholder(process.env.NODE_ENV),
 };
@@ -60,11 +56,8 @@ const Schema = z.object({
   AGENT_KEYPAIR_PATH: z.string().default("keys/agent.json"),
   GEMINI_API_KEY: z.string().optional(),
   GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
-  GOOGLE_PLACES_API_KEY: z.string().optional(),
   ELEVENLABS_API_KEY: z.string().optional(),
   ELEVENLABS_VOICE_ID: z.string().default("JBFqnCBsd6RMkjVDRZzb"),
-  MONGODB_URI: z.string().optional(),
-  MONGODB_DB: z.string().default("oath"),
   X402_FACILITATOR_URL: z
     .string()
     .url()
@@ -86,9 +79,7 @@ export const env = parsed.data;
 /** A feature is "live" when its credential is real (not a placeholder). */
 export const features = {
   gemini: !!env.GEMINI_API_KEY,
-  mongo: !!env.MONGODB_URI,
   elevenLabs: !!env.ELEVENLABS_API_KEY,
-  googlePlaces: !!env.GOOGLE_PLACES_API_KEY,
 } as const;
 
 export function logFeatureStatus(): void {

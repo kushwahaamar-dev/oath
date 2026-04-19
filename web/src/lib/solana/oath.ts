@@ -236,30 +236,27 @@ export async function buildRevokeIx(params: {
     .instruction();
 }
 
-/** Fetch an oath account and project it into a UI-friendly shape. */
-export async function fetchOathView(oath: PublicKey): Promise<OathView | null> {
-  const program = getOathProgram();
-  const acc = await program.account.oath.fetchNullable(oath);
-  if (!acc) return null;
-  const a = acc as unknown as {
-    user: PublicKey;
-    agent: PublicKey;
-    oathId: BN;
-    purposeUri: string;
-    spendCap: BN;
-    spent: BN;
-    perTxCap: BN;
-    stakeAmount: BN;
-    stakeVault: PublicKey;
-    allowedActionTypes: Array<Record<string, unknown>>;
-    allowedRecipients: PublicKey[];
-    expiry: BN;
-    createdAt: BN;
-    status: Record<string, unknown>;
-    actionCount: number;
-  };
+type RawOathAccount = {
+  user: PublicKey;
+  agent: PublicKey;
+  oathId: BN;
+  purposeUri: string;
+  spendCap: BN;
+  spent: BN;
+  perTxCap: BN;
+  stakeAmount: BN;
+  stakeVault: PublicKey;
+  allowedActionTypes: Array<Record<string, unknown>>;
+  allowedRecipients: PublicKey[];
+  expiry: BN;
+  createdAt: BN;
+  status: Record<string, unknown>;
+  actionCount: number;
+};
+
+function projectOath(pda: PublicKey, a: RawOathAccount): OathView {
   return {
-    oath_pda: oath.toBase58(),
+    oath_pda: pda.toBase58(),
     user_pubkey: a.user.toBase58(),
     agent_pubkey: a.agent.toBase58(),
     oath_id: a.oathId.toString(),
@@ -276,4 +273,25 @@ export async function fetchOathView(oath: PublicKey): Promise<OathView | null> {
     status: oathStatusFromVariant(a.status),
     action_count: a.actionCount,
   };
+}
+
+/** Fetch an oath account and project it into a UI-friendly shape. */
+export async function fetchOathView(oath: PublicKey): Promise<OathView | null> {
+  const program = getOathProgram();
+  const acc = await program.account.oath.fetchNullable(oath);
+  if (!acc) return null;
+  return projectOath(oath, acc as unknown as RawOathAccount);
+}
+
+/**
+ * Enumerate every Oath account owned by the program. This is the
+ * source-of-truth for the dashboard and reputation surfaces — the
+ * protocol IS the data, no off-chain mirror needed.
+ */
+export async function fetchAllOathViews(): Promise<OathView[]> {
+  const program = getOathProgram();
+  const rows = await program.account.oath.all();
+  return rows
+    .map((r) => projectOath(r.publicKey, r.account as unknown as RawOathAccount))
+    .sort((a, b) => b.created_at - a.created_at);
 }

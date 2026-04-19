@@ -49,11 +49,7 @@ export default async function AgentProfilePage({
                 <ShieldCheck className="h-3.5 w-3.5 text-primary" />
                 Agent profile
               </div>
-              {profile.mocked ? (
-                <Badge variant="warn">mock · mongo disabled</Badge>
-              ) : (
-                <Badge variant="success">live · atlas</Badge>
-              )}
+              <Badge variant="success">live · on-chain</Badge>
             </div>
             <CardTitle className="text-balance text-3xl leading-tight">
               {profile.name}
@@ -107,9 +103,7 @@ export default async function AgentProfilePage({
               </h2>
               {profile.recent_oaths.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-border bg-background/30 p-6 text-sm text-muted-foreground">
-                  {profile.mocked
-                    ? "Set MONGODB_URI to populate the reputation graph."
-                    : "No oaths yet for this agent."}
+                  No oaths yet for this agent.
                 </div>
               ) : (
                 <div className="space-y-2">

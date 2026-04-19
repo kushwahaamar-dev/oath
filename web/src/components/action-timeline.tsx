@@ -157,9 +157,9 @@ function iconForKind(kind: string): React.ReactNode {
 function humanKind(kind: string): string {
   switch (kind) {
     case "search_places":
-      return "Searching places";
+      return "Scanning recipients";
     case "book_restaurant":
-      return "Booking restaurant";
+      return "Recording payment";
     case "complete":
       return "Task complete";
     case "abort":

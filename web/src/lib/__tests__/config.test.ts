@@ -5,6 +5,7 @@ describe("config", () => {
     const mod = await import("@/lib/config");
     expect(mod.env.NEXT_PUBLIC_OATH_PROGRAM_ID.length).toBeGreaterThan(30);
     expect(mod.features).toHaveProperty("gemini");
-    expect(typeof mod.features.mongo).toBe("boolean");
+    expect(mod.features).toHaveProperty("elevenLabs");
+    expect(typeof mod.features.gemini).toBe("boolean");
   });
 });

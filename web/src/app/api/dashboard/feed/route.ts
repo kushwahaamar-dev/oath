@@ -1,31 +1,31 @@
 import { NextResponse } from "next/server";
 
-import { getDb } from "@/lib/mongo/client";
-import { collections } from "@/lib/mongo/collections";
+import { log } from "@/lib/logger";
+import { fetchAllOathViews } from "@/lib/solana/oath";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Dashboard feed: last 20 oaths + violations. Returns empty arrays
- *  when Mongo is mocked (front-end renders a friendly placeholder). */
+/** Dashboard feed: every oath on-chain, sorted newest-first.
+ *  Source of truth is the protocol itself — no off-chain mirror. */
 export async function GET(): Promise<Response> {
-  const db = await getDb();
-  if (!db) return NextResponse.json({ mocked: true, oaths: [], violations: [] });
-  const { oaths, violations } = collections(db);
-  const [recentOaths, recentViolations] = await Promise.all([
-    oaths.find({}).sort({ created_at: -1 }).limit(20).toArray(),
-    violations.find({}).sort({ timestamp: -1 }).limit(10).toArray(),
-  ]);
-  return NextResponse.json({
-    mocked: false,
-    oaths: recentOaths.map((o) => ({
-      oath_pda: o.oath_pda,
-      purpose: o.purpose,
-      status: o.status,
-      created_at: o.created_at,
-      stake_lamports: o.stake_lamports,
-      spend_cap_micro: o.spend_cap_micro,
-    })),
-    violations: recentViolations,
-  });
+  try {
+    const oaths = await fetchAllOathViews();
+    const violations = oaths.filter((o) => o.status === "Slashed").slice(0, 10);
+    return NextResponse.json({
+      oaths: oaths.slice(0, 20),
+      violations: violations.map((o) => ({
+        oath_pda: o.oath_pda,
+        purpose: o.purpose,
+        stake_lamports: o.stake_amount,
+        user_pubkey: o.user_pubkey,
+        agent_pubkey: o.agent_pubkey,
+        timestamp: o.created_at,
+      })),
+      total: oaths.length,
+    });
+  } catch (err) {
+    log.error("dashboard.feed.failed", { err: String(err) });
+    return NextResponse.json({ oaths: [], violations: [], total: 0 });
+  }
 }
