@@ -35,7 +35,7 @@ describe("OathProposalCard", () => {
       }),
     );
 
-    expect(screen.getByText("Proposed oath artifact")).toBeInTheDocument();
+    expect(screen.getByText(/Unsigned covenant/i)).toBeInTheDocument();
     expect(screen.getByText("Book dinner for 4")).toBeInTheDocument();
     expect(screen.getByText(/Spend cap/i)).toBeInTheDocument();
   });

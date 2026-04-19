@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Award, ShieldCheck, Skull, TrendingUp } from "lucide-react";
 
-import { explorerAddress } from "@/components/action-timeline";
+import { explorerAddress } from "@/lib/explorer";
 import { SiteHeader } from "@/components/site-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

@@ -13,7 +13,7 @@ import {
 import * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { env } from "@/lib/config";
+import { explorerTx } from "@/lib/explorer";
 import type { ExecuteStep } from "@/lib/client/api";
 import { cn, shortPubkey } from "@/lib/utils";
 
@@ -169,9 +169,4 @@ function humanKind(kind: string): string {
   }
 }
 
-export function explorerTx(sig: string): string {
-  return `https://explorer.solana.com/tx/${sig}?cluster=${env.NEXT_PUBLIC_SOLANA_CLUSTER}`;
-}
-export function explorerAddress(addr: string): string {
-  return `https://explorer.solana.com/address/${addr}?cluster=${env.NEXT_PUBLIC_SOLANA_CLUSTER}`;
-}
+export { explorerTx, explorerAddress } from "@/lib/explorer";

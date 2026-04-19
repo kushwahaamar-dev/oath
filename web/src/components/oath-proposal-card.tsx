@@ -1,13 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Clock, Coins, Volume2 } from "lucide-react";
+import { Pause, Play, ShieldCheck } from "lucide-react";
 import * as React from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import type { PlanResponse } from "@/lib/client/api";
 import { cn, shortPubkey } from "@/lib/utils";
 
@@ -29,6 +27,7 @@ export function OathProposalCard({
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = React.useState(false);
   const hasAudio = !!plan.voice_audio_b64;
+  const { proposal } = plan;
 
   async function togglePlay(): Promise<void> {
     if (!hasAudio) return;
@@ -43,95 +42,131 @@ export function OathProposalCard({
     }
   }
 
-  const { proposal } = plan;
-  const expiryHuman = `${proposal.expiry_hours < 2 ? (proposal.expiry_hours * 60).toFixed(0) + " min" : proposal.expiry_hours.toFixed(1) + " hr"}`;
+  const expiryHuman =
+    proposal.expiry_hours < 2
+      ? `${(proposal.expiry_hours * 60).toFixed(0)} min`
+      : `${proposal.expiry_hours.toFixed(1)} hr`;
 
   return (
-    <motion.div
+    <motion.article
       layout
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -24 }}
       transition={{ type: "spring", damping: 24, stiffness: 220 }}
+      className="chamber-surface relative overflow-hidden rounded-[28px] border border-white/10"
     >
-      <Card className="chamber-surface overflow-hidden rounded-[28px] border-white/10 shadow-none">
-        <CardHeader className="gap-5 border-b border-white/10 pb-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-4">
-              <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-                Proposed oath artifact
+      {/* Kicker strip */}
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-6 py-4">
+        <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+          <ShieldCheck className="h-3.5 w-3.5" />
+          Unsigned covenant · Solana devnet
+        </div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-foreground/60">
+          oath · {shortPubkey(plan.oath_pda, 4)}
+        </div>
+      </div>
+
+      {/* Hero — the purpose as an editorial statement */}
+      <header className="px-6 pt-8">
+        <div className="mb-5 font-mono text-[10px] uppercase tracking-[0.32em] text-muted-foreground">
+          I, the agent, swear to
+        </div>
+        <h2 className="font-display text-balance text-[32px] leading-[1.06] tracking-tight text-foreground md:text-[40px]">
+          {proposal.purpose}
+        </h2>
+        {proposal.reasoning ? (
+          <p className="font-ui mt-5 max-w-2xl text-[14px] leading-[1.7] text-muted-foreground/90">
+            {proposal.reasoning}
+          </p>
+        ) : null}
+      </header>
+
+      {/* Metadata rail — tight mono grid */}
+      <section className="mt-8 grid grid-cols-2 divide-x divide-y divide-white/5 border-y border-white/10 md:grid-cols-4 md:divide-y-0">
+        <Cell
+          label="Stake"
+          value={`${proposal.stake_amount_sol}`}
+          unit="SOL"
+          hint="slashable"
+        />
+        <Cell
+          label="Spend cap"
+          value={`$${proposal.spend_cap_usdc}`}
+          unit="USDC"
+          hint="cumulative"
+        />
+        <Cell
+          label="Per-tx"
+          value={`$${proposal.per_tx_cap_usdc}`}
+          unit="USDC"
+          hint="max single"
+        />
+        <Cell
+          label="Expiry"
+          value={expiryHuman}
+          unit=""
+          hint="auto-fulfill"
+        />
+      </section>
+
+      {/* Scope */}
+      <section className="space-y-5 px-6 py-6">
+        <div>
+          <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+            Allowed action types
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {proposal.allowed_action_types.map((a) => (
+              <Badge key={a} variant="outline" className="font-mono text-[11px]">
+                {a}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+            Whitelisted recipients · {proposal.allowed_recipient_hints.length}
+          </div>
+          <div className="space-y-1.5">
+            {proposal.allowed_recipient_hints.map((hint, i) => (
+              <div
+                key={`${hint}-${i}`}
+                className="flex items-center justify-between rounded-lg border border-white/5 bg-background/30 px-3 py-2 text-sm"
+              >
+                <span className="font-ui">{hint}</span>
+                <span className="font-mono text-[11px] text-muted-foreground">
+                  {shortPubkey(plan.resolved_recipients[i] ?? "", 4)}
+                </span>
               </div>
-              <CardTitle className="font-display max-w-2xl text-3xl leading-tight">
-                {proposal.purpose}
-              </CardTitle>
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {proposal.allowed_action_types.slice(0, 3).map((a) => (
-                <Badge key={a} variant="outline">
-                  {a}
-                </Badge>
-              ))}
-              {proposal.allowed_action_types.length > 3 ? (
-                <Badge variant="outline">
-                  +{proposal.allowed_action_types.length - 3}
-                </Badge>
-              ) : null}
-            </div>
+            ))}
           </div>
-          <p className="max-w-2xl text-sm leading-7 text-muted-foreground">{proposal.reasoning}</p>
-        </CardHeader>
+        </div>
+      </section>
 
-        <CardContent className="space-y-6 pt-6">
-          <div className="grid gap-3 md:grid-cols-3">
-            <Stat label="Spend cap" value={`$${proposal.spend_cap_usdc}`} sublabel="USDC total" />
-            <Stat label="Per-tx cap" value={`$${proposal.per_tx_cap_usdc}`} sublabel="single pay" />
-            <Stat label="Stake" value={`${proposal.stake_amount_sol} SOL`} sublabel="slashable" />
-          </div>
-
-          <Separator />
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <MetaRow icon={<Clock className="h-3.5 w-3.5" />} label="Expires in">
-              {expiryHuman}
-            </MetaRow>
-            <MetaRow icon={<Coins className="h-3.5 w-3.5" />} label="Oath PDA">
-              <span className="font-mono text-xs">{shortPubkey(plan.oath_pda, 6)}</span>
-            </MetaRow>
-          </div>
-
-          <div>
-            <div className="mb-2 font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-              Whitelisted recipients
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {proposal.allowed_recipient_hints.map((hint, i) => (
-                <Badge key={`${hint}-${i}`} variant="neutral">
-                  {hint}
-                  <span className="ml-1.5 font-mono text-[10px] text-muted-foreground/70">
-                    {shortPubkey(plan.resolved_recipients[i] ?? "", 3)}
-                  </span>
-                </Badge>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-
-        <CardFooter className="flex flex-col gap-3 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+      {/* Signature line — the sign moment */}
+      <footer className="border-t border-white/10 bg-black/40 px-6 py-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
             onClick={togglePlay}
             disabled={!hasAudio}
             className={cn(
-              "font-ui inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-4 py-2 text-xs text-muted-foreground transition",
+              "font-ui inline-flex items-center gap-2 rounded-full border border-white/10 bg-background/40 px-4 py-2 text-xs text-muted-foreground transition",
               hasAudio ? "hover:text-foreground" : "cursor-not-allowed opacity-50",
             )}
           >
-            <Volume2 className={cn("h-3.5 w-3.5", isPlaying && "text-primary")} />
+            {isPlaying ? (
+              <Pause className="h-3.5 w-3.5" />
+            ) : (
+              <Play className="h-3.5 w-3.5" />
+            )}
             {hasAudio
               ? isPlaying
                 ? "Pause narration"
-                : "Play narration"
-              : "TTS disabled (ElevenLabs key missing)"}
+                : "Hear the oath"
+              : "TTS disabled"}
           </button>
 
           <div className="flex items-center gap-2">
@@ -145,12 +180,13 @@ export function OathProposalCard({
               size="lg"
               onClick={onApprove}
               disabled={disabled || signing}
+              className="font-ui text-sm tracking-tight"
             >
-              {signing ? "Waiting for wallet…" : "Approve & sign"}
+              {signing ? "Awaiting Phantom…" : "Approve & sign on-chain"}
             </Button>
           </div>
-        </CardFooter>
-      </Card>
+        </div>
+      </footer>
 
       {hasAudio ? (
         <audio
@@ -161,55 +197,39 @@ export function OathProposalCard({
           className="hidden"
         />
       ) : null}
-    </motion.div>
+    </motion.article>
   );
 }
 
-function Stat({
+function Cell({
   label,
   value,
-  sublabel,
+  unit,
+  hint,
 }: {
   label: string;
   value: string;
-  sublabel?: string;
+  unit: string;
+  hint: string;
 }): JSX.Element {
   return (
-    <div className="rounded-[20px] border border-border/70 bg-background/40 p-4">
-      <div className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+    <div className="px-5 py-4">
+      <div className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
         {label}
       </div>
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="font-display mt-2 text-2xl leading-none"
-      >
-        {value}
-      </motion.div>
-      {sublabel ? (
-        <div className="font-ui mt-1 text-[11px] text-muted-foreground/70">{sublabel}</div>
-      ) : null}
-    </div>
-  );
-}
-
-function MetaRow({
-  icon,
-  label,
-  children,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  children: React.ReactNode;
-}): JSX.Element {
-  return (
-    <div className="flex items-center justify-between rounded-[18px] border border-border bg-background/30 px-4 py-3 text-sm">
-      <div className="flex items-center gap-2 text-muted-foreground">
-        {icon}
-        <span className="font-ui">{label}</span>
+      <div className="mt-2 flex items-baseline gap-1.5">
+        <span className="font-display text-[26px] leading-none tracking-tight text-foreground">
+          {value}
+        </span>
+        {unit ? (
+          <span className="font-mono text-[11px] text-muted-foreground">
+            {unit}
+          </span>
+        ) : null}
       </div>
-      <div className="font-mono text-xs">{children}</div>
+      <div className="font-mono mt-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/60">
+        {hint}
+      </div>
     </div>
   );
 }
