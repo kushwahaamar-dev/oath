@@ -12,6 +12,14 @@ import { env } from "@/lib/config";
  * keypair is fine — we only commit the public key, not the secret.
  */
 export function loadOracleSecret(): Uint8Array {
+  // Vercel / serverless: base64 JSON in env var.
+  if (process.env.ORACLE_KEYPAIR_JSON) {
+    const decoded = Buffer.from(
+      process.env.ORACLE_KEYPAIR_JSON,
+      "base64",
+    ).toString("utf8");
+    return Uint8Array.from(JSON.parse(decoded) as number[]);
+  }
   const p = path.isAbsolute(env.ORACLE_KEYPAIR_PATH)
     ? env.ORACLE_KEYPAIR_PATH
     : path.resolve(process.cwd(), "..", env.ORACLE_KEYPAIR_PATH);

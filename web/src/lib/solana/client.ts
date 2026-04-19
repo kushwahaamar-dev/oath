@@ -27,8 +27,22 @@ export function programId(): PublicKey {
   return new PublicKey(env.NEXT_PUBLIC_OATH_PROGRAM_ID);
 }
 
-/** Load a Solana CLI-format JSON keypair from disk, relative to repo root. */
+/**
+ * Load a Solana CLI-format JSON keypair.
+ * - On Vercel / serverless: reads `AGENT_KEYPAIR_JSON` env var (a base64
+ *   string of the JSON number[] form).
+ * - Locally: falls back to reading the JSON file at `p`.
+ */
 export function loadKeypair(p: string): Keypair {
+  const envKey = p.includes("agent")
+    ? process.env.AGENT_KEYPAIR_JSON
+    : p.includes("oracle")
+      ? process.env.ORACLE_KEYPAIR_JSON
+      : undefined;
+  if (envKey) {
+    const decoded = Buffer.from(envKey, "base64").toString("utf8");
+    return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(decoded)));
+  }
   const resolved = path.isAbsolute(p)
     ? p
     : path.resolve(process.cwd(), "..", p);
