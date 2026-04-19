@@ -51,31 +51,53 @@ export async function proposeOath(userRequest: string): Promise<OathProposal> {
       responseSchema: OathProposalJsonSchema as never,
     },
   });
-  const started = Date.now();
-  const result = await model.generateContent([
-    {
-      text: `USER REQUEST:\n"""\n${userRequest}\n"""\n\nReturn the OathProposal JSON.`,
-    },
-  ]);
-  const text = result.response.text();
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch (err) {
-    log.error("gemini.propose_oath.parse_error", { text: text.slice(0, 500) });
-    throw new Error(`Gemini returned invalid JSON: ${(err as Error).message}`);
+
+  // One retry: if Gemini's first response parses badly, feed the parse error
+  // back into the prompt. Fails to the mock fallback after 2 attempts so a
+  // live demo never dies on an upstream hiccup.
+  let lastError = "";
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const started = Date.now();
+    const promptText = attempt === 1
+      ? `USER REQUEST:\n"""\n${userRequest}\n"""\n\nReturn the OathProposal JSON.`
+      : `USER REQUEST:\n"""\n${userRequest}\n"""\n\nYour previous response was invalid: ${lastError}\nReturn ONLY the OathProposal JSON, fully closed with a trailing "}". Obey the schema.`;
+
+    try {
+      const result = await model.generateContent([{ text: promptText }]);
+      const text = result.response.text();
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text);
+      } catch (err) {
+        lastError = (err as Error).message;
+        log.warn("gemini.propose_oath.parse_error", {
+          attempt,
+          text: text.slice(0, 500),
+          err: lastError,
+        });
+        if (attempt === 2) break;
+        continue;
+      }
+      const safe = OathProposalSchema.parse(parsed);
+      log.info("gemini.propose_oath.ok", {
+        ms: Date.now() - started,
+        attempt,
+        spend_cap: safe.spend_cap_usdc,
+      });
+      // Invariant: per-tx cap never exceeds spend cap.
+      if (safe.per_tx_cap_usdc > safe.spend_cap_usdc) {
+        safe.per_tx_cap_usdc = safe.spend_cap_usdc;
+      }
+      return safe;
+    } catch (err) {
+      lastError = (err as Error).message;
+      log.warn("gemini.propose_oath.error", { attempt, err: lastError });
+      if (attempt === 2) break;
+    }
   }
-  const safe = OathProposalSchema.parse(parsed);
-  log.info("gemini.propose_oath.ok", {
-    ms: Date.now() - started,
-    spend_cap: safe.spend_cap_usdc,
-  });
-  // Invariant: per-tx cap never exceeds spend cap. Gemini usually respects
-  // this but we harden to refuse borderline proposals.
-  if (safe.per_tx_cap_usdc > safe.spend_cap_usdc) {
-    safe.per_tx_cap_usdc = safe.spend_cap_usdc;
-  }
-  return safe;
+
+  log.warn("gemini.propose_oath.fallback_after_retries", { err: lastError });
+  return FALLBACK_PROPOSAL(userRequest);
 }
 
 export const _internal = { FALLBACK_PROPOSAL };

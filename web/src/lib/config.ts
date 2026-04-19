@@ -59,10 +59,10 @@ const Schema = z.object({
   ORACLE_KEYPAIR_PATH: z.string().default("keys/oracle.json"),
   AGENT_KEYPAIR_PATH: z.string().default("keys/agent.json"),
   GEMINI_API_KEY: z.string().optional(),
-  GEMINI_MODEL: z.string().default("gemini-2.0-flash-exp"),
+  GEMINI_MODEL: z.string().default("gemini-2.5-flash"),
   GOOGLE_PLACES_API_KEY: z.string().optional(),
   ELEVENLABS_API_KEY: z.string().optional(),
-  ELEVENLABS_VOICE_ID: z.string().default("21m00Tcm4TlvDq8ikWAM"),
+  ELEVENLABS_VOICE_ID: z.string().default("JBFqnCBsd6RMkjVDRZzb"),
   MONGODB_URI: z.string().optional(),
   MONGODB_DB: z.string().default("oath"),
   X402_FACILITATOR_URL: z
